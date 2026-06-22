@@ -1,5 +1,3 @@
-Ce dépôt regroupe les corrections et implémentations de l'ensemble des trois Travaux Pratiques (TP) de la piscine DevOps. Chaque dossier contient son propre code, ses fichiers de configuration Docker, ainsi que le rapport de TP officiel au format PDF.
-
 ---
 
 ## Sujet Principal
