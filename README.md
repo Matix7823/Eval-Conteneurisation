@@ -1,4 +1,4 @@
----
+# Index Global
 
 ## Sujet Principal
 
