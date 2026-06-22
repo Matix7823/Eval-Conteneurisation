@@ -3,7 +3,7 @@
 ## Sujet Principal
 
 Le sujet général contenant toutes les consignes pour les trois TP est disponible à la racine de ce dossier :
-**[Sujet_b2_22_juin.pdf]**
+Sujet_b2_22_juin.pdf
 
 ---
 
