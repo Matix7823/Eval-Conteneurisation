@@ -1,0 +1,36 @@
+# ============================================================
+# .dockerignore
+# Exclut du contexte de build tout ce qui ne doit pas
+# se retrouver dans les images frontend ou API.
+# ============================================================
+
+# Dépendances locales
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Secrets — jamais dans une image
+.env
+.env.*
+
+# Contrôle de version
+.git/
+.gitignore
+.gitattributes
+
+# Docker lui-même
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+*.md
+LICENSE
+
+# Tests
+*.test.js
+coverage/
+
+# Données locales
+data/

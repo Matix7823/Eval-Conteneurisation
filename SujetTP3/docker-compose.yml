@@ -1,0 +1,76 @@
+# ============================================================
+# TP3 — TaskFlow · Docker Compose
+# ============================================================
+#
+# Démarrage  : docker compose up --build
+# Arrêt      : docker compose down
+# Reset Redis : docker compose down -v
+
+services:
+
+  # ──────────────────────────────────────────────────────────
+  # 1. Cache Redis — AUCUN port exposé à l'extérieur
+  # ──────────────────────────────────────────────────────────
+  cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Pas de ports: → Redis inaccessible depuis l'hôte
+    # Seul le backend peut l'atteindre via le réseau taskflow
+    volumes:
+      - redis_data:/data
+    # Healthcheck : vérifie que Redis répond aux pings
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - taskflow
+
+  # ──────────────────────────────────────────────────────────
+  # 2. Backend Node.js API
+  # ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV:    ${APP_ENV:-local}
+      PORT:       ${BACKEND_PORT:-3001}
+      REDIS_HOST: cache        # nom du service → DNS Docker interne
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+    depends_on:
+      cache:
+        condition: service_healthy
+    networks:
+      - taskflow
+
+  # ──────────────────────────────────────────────────────────
+  # 3. Frontend Nginx
+  # ──────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - backend
+    networks:
+      - taskflow
+
+# ── Réseau partagé ─────────────────────────────────────────
+networks:
+  taskflow:
+    driver: bridge
+
+# ── Volume persistant Redis ────────────────────────────────
+volumes:
+  redis_data:
+    # Données Redis conservées entre docker compose down/up
+    # Pour tout réinitialiser : docker compose down -v

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>TaskFlow — Gestionnaire de tâches</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 32px 20px;
+    }
+
+    .app { max-width: 760px; margin: 0 auto; }
+
+    header { margin-bottom: 32px; }
+    header h1 { font-size: 1.8rem; font-weight: 700; color: #38bdf8; }
+    header p  { color: #94a3b8; font-size: 0.9rem; margin-top: 4px; }
+
+    /* Status badge */
+    #status { display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.8rem; padding: 3px 10px; border-radius: 20px; margin-top: 10px; }
+    #status.ok  { background: #14532d44; color: #4ade80; border: 1px solid #166534; }
+    #status.err { background: #7f1d1d44; color: #f87171; border: 1px solid #7f1d1d; }
+
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
+    .stat-card {
+      background: #1e293b; border: 1px solid #334155;
+      border-radius: 10px; padding: 16px; text-align: center;
+    }
+    .stat-card .num { font-size: 2rem; font-weight: 700; color: #38bdf8; }
+    .stat-card .lbl { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+
+    /* Formulaire */
+    .form-card {
+      background: #1e293b; border: 1px solid #334155;
+      border-radius: 12px; padding: 20px; margin-bottom: 24px;
+    }
+    .form-row { display: flex; gap: 10px; }
+    .form-row input {
+      flex: 1; padding: 10px 14px;
+      background: #0f172a; border: 1px solid #475569;
+      border-radius: 8px; color: #e2e8f0; font-size: 0.95rem;
+    }
+    .form-row input:focus { outline: 2px solid #38bdf8; border-color: transparent; }
+    .form-row select {
+      padding: 10px 12px;
+      background: #0f172a; border: 1px solid #475569;
+      border-radius: 8px; color: #e2e8f0; font-size: 0.9rem;
+    }
+    .btn {
+      padding: 10px 20px; border: none; border-radius: 8px;
+      cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn-primary { background: #0284c7; color: white; }
+    .btn-danger  { background: #dc2626; color: white; padding: 6px 12px; font-size: 0.8rem; }
+    .btn-ghost   { background: #334155; color: #94a3b8;  padding: 6px 12px; font-size: 0.8rem; }
+
+    /* Liste */
+    #task-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+
+    .task-item {
+      background: #1e293b; border: 1px solid #334155;
+      border-radius: 10px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      transition: border-color .2s;
+    }
+    .task-item:hover { border-color: #38bdf8; }
+    .task-item.done  { opacity: .5; }
+
+    .task-check {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid #475569; cursor: pointer;
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      transition: background .15s, border-color .15s;
+    }
+    .task-check.checked { background: #22c55e; border-color: #22c55e; }
+    .task-check.checked::after { content: "✓"; color: white; font-size: 0.7rem; font-weight: 700; }
+
+    .task-body { flex: 1; }
+    .task-title { font-size: 0.95rem; }
+    .task-item.done .task-title { text-decoration: line-through; color: #475569; }
+    .task-meta { font-size: 0.75rem; color: #64748b; margin-top: 3px; }
+
+    .prio { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; }
+    .prio-high   { background: #7f1d1d44; color: #f87171; }
+    .prio-medium { background: #78350f44; color: #fbbf24; }
+    .prio-low    { background: #14532d44; color: #4ade80; }
+
+    .task-actions { display: flex; gap: 6px; }
+
+    .empty { text-align: center; padding: 40px; color: #475569; }
+    .empty span { font-size: 2rem; display: block; margin-bottom: 8px; }
+
+    #error-banner {
+      background: #7f1d1d44; border: 1px solid #7f1d1d; color: #f87171;
+      border-radius: 8px; padding: 10px 14px; margin-bottom: 16px;
+      font-size: 0.9rem; display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>✅ TaskFlow</h1>
+    <p>Gestionnaire de tâches · Stack Docker Compose</p>
+    <div id="status" class="status err">⬤ Connexion API...</div>
+  </header>
+
+  <div class="stats">
+    <div class="stat-card"><div class="num" id="stat-total">—</div><div class="lbl">Total</div></div>
+    <div class="stat-card"><div class="num" id="stat-done">—</div><div class="lbl">Terminées</div></div>
+    <div class="stat-card"><div class="num" id="stat-pending">—</div><div class="lbl">En cours</div></div>
+  </div>
+
+  <div id="error-banner"></div>
+
+  <div class="form-card">
+    <div class="form-row">
+      <input id="task-input" type="text" placeholder="Nouvelle tâche..." />
+      <select id="priority-select">
+        <option value="medium">Normale</option>
+        <option value="high">Haute</option>
+        <option value="low">Basse</option>
+      </select>
+      <button class="btn btn-primary" onclick="addTask()">Ajouter</button>
+    </div>
+  </div>
+
+  <ul id="task-list">
+    <li class="empty"><span>⏳</span>Chargement...</li>
+  </ul>
+
+</div>
+
+<script>
+  const API = window.API_URL || "http://localhost:3001";
+
+  const statusEl  = document.getElementById("status");
+  const errorEl   = document.getElementById("error-banner");
+  const listEl    = document.getElementById("task-list");
+  const inputEl   = document.getElementById("task-input");
+  const prioEl    = document.getElementById("priority-select");
+
+  function showError(msg) { errorEl.textContent = msg; errorEl.style.display = "block"; }
+  function hideError()    { errorEl.style.display = "none"; }
+
+  function prioLabel(p) {
+    return { high:"Haute", medium:"Normale", low:"Basse" }[p] || p;
+  }
+  function prioClass(p) {
+    return { high:"prio-high", medium:"prio-medium", low:"prio-low" }[p] || "";
+  }
+  function formatDate(iso) {
+    return new Date(iso).toLocaleString("fr-FR", { dateStyle:"short", timeStyle:"short" });
+  }
+
+  async function loadTasks() {
+    try {
+      const res   = await fetch(`${API}/tasks`);
+      const tasks = await res.json();
+      hideError();
+      statusEl.textContent = "⬤ API connectée";
+      statusEl.className = "status ok";
+      renderTasks(tasks);
+      loadStats();
+    } catch {
+      statusEl.textContent = "⬤ API non joignable";
+      statusEl.className = "status err";
+      showError(`Impossible de joindre l'API sur ${API} — vérifie que la stack est démarrée.`);
+    }
+  }
+
+  async function loadStats() {
+    try {
+      const res  = await fetch(`${API}/stats`);
+      const data = await res.json();
+      document.getElementById("stat-total").textContent   = data.total;
+      document.getElementById("stat-done").textContent    = data.done;
+      document.getElementById("stat-pending").textContent = data.pending;
+    } catch { /* silencieux */ }
+  }
+
+  function renderTasks(tasks) {
+    if (tasks.length === 0) {
+      listEl.innerHTML = `<li class="empty"><span>📋</span>Aucune tâche — ajoutes-en une !</li>`;
+      return;
+    }
+    listEl.innerHTML = tasks.map(t => `
+      <li class="task-item ${t.done ? "done" : ""}" id="task-${t.id}">
+        <div class="task-check ${t.done ? "checked" : ""}" onclick="toggleDone('${t.id}', ${t.done})"></div>
+        <div class="task-body">
+          <div class="task-title">${escape(t.title)}</div>
+          <div class="task-meta">
+            <span class="prio ${prioClass(t.priority)}">${prioLabel(t.priority)}</span>
+            · ${formatDate(t.createdAt)}
+          </div>
+        </div>
+        <div class="task-actions">
+          <button class="btn btn-danger" onclick="deleteTask('${t.id}')">Suppr.</button>
+        </div>
+      </li>
+    `).join("");
+  }
+
+  function escape(str) {
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  async function addTask() {
+    const title    = inputEl.value.trim();
+    const priority = prioEl.value;
+    if (!title) { inputEl.focus(); return; }
+    try {
+      await fetch(`${API}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, priority }),
+      });
+      inputEl.value = "";
+      loadTasks();
+    } catch (err) { showError("Erreur lors de l'ajout : " + err.message); }
+  }
+
+  async function toggleDone(id, wasDone) {
+    try {
+      await fetch(`${API}/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ done: !wasDone }),
+      });
+      loadTasks();
+    } catch (err) { showError("Erreur : " + err.message); }
+  }
+
+  async function deleteTask(id) {
+    try {
+      await fetch(`${API}/tasks/${id}`, { method: "DELETE" });
+      loadTasks();
+    } catch (err) { showError("Erreur : " + err.message); }
+  }
+
+  inputEl.addEventListener("keydown", e => { if (e.key === "Enter") addTask(); });
+
+  loadTasks();
+</script>
+</body>
+</html>

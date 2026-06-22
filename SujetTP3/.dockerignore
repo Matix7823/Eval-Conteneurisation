@@ -1,0 +1,43 @@
+# ============================================================
+# .dockerignore — TP3 TaskFlow
+# Exclut du contexte de build les fichiers inutiles ou sensibles
+# ============================================================
+
+# Dépendances locales (recréées dans le container)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Secrets — jamais dans une image
+.env
+.env.*
+
+# Contrôle de version
+.git/
+.gitignore
+.gitattributes
+
+# Build locaux
+dist/
+build/
+
+# Logs
+*.log
+
+# Fichiers Docker eux-mêmes
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+*.md
+LICENSE
+
+# IDE
+.vscode/
+.idea/
+
+# Tests
+*.test.js
+coverage/

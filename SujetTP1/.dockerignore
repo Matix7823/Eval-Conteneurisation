@@ -1,0 +1,46 @@
+# =============================================
+# .dockerignore
+# =============================================
+
+# Dépendances locales (inutiles : l'app n'en a pas de prod)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Fichiers d'environnement sensibles — JAMAIS dans l'image
+.env
+.env.*
+*.local
+
+# Contrôle de version
+.git/
+.gitignore
+.gitattributes
+
+# Données locales (persistées en volume en prod, pas dans l'image)
+data/
+
+# Fichiers Docker eux-mêmes
+Dockerfile
+Dockerfile.*
+.dockerignore
+
+# Documentation et markdown
+*.md
+LICENSE
+
+# Tests et couverture
+*.test.js
+*.spec.js
+coverage/
+
+# Dossier de build local (évite d'écraser celui généré dans le container)
+dist/
+build/
+
+# Fichiers éditeur/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
